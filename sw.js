@@ -1,5 +1,5 @@
 /* Offline cache: precache the app shell on install, serve cache-first after. */
-const CACHE = 'cet4-70-v1';
+const CACHE = 'cet4-70-v2';
 const ASSETS = [
   './',
   './index.html',
