@@ -31,16 +31,32 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;
 
-  e.respondWith(
-    caches.match(req).then((hit) => {
-      if (hit) return hit;
-      return fetch(req)
+  const accept = req.headers.get('accept') || '';
+  const isDoc = req.mode === 'navigate' || accept.indexOf('text/html') >= 0;
+
+  // 页面文档：network-first —— 联网时永远拿最新，断网才退回缓存
+  if (isDoc) {
+    e.respondWith(
+      fetch(req)
         .then((resp) => {
           const copy = resp.clone();
           caches.open(CACHE).then((c) => c.put(req, copy));
           return resp;
         })
-        .catch(() => caches.match('./index.html'));
+        .catch(() => caches.match(req).then((hit) => hit || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // 其余静态资源：cache-first
+  e.respondWith(
+    caches.match(req).then((hit) => {
+      if (hit) return hit;
+      return fetch(req).then((resp) => {
+        const copy = resp.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy));
+        return resp;
+      });
     })
   );
 });
